@@ -10,7 +10,7 @@ license = "MPL-2.0"
 default = ["rustls-tls"]
 native-tls = ["turborepo-api-client/native-tls", "turbo-updater/native-tls"]
 rustls-tls = ["turborepo-api-client/rustls-tls", "turbo-updater/rustls-tls"]
-run-stub = []
+run-stub = ["turborepo-lockfiles"]
 
 # serve the daemon over a port (useful for testing)
 http = ["tonic-reflection"]
@@ -97,8 +97,9 @@ tracing.workspace = true
 turbo-updater = { workspace = true }
 turbopath = { workspace = true }
 turborepo-api-client = { workspace = true }
+turborepo-lockfiles = { workspace = true, optional = true }
 webbrowser = { workspace = true }
-which = { workspace = true }
+which = { workspace = true, optional = true  }
 
 
 [target.'cfg(target_os = "windows")'.dependencies]

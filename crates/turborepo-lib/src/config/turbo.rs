@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{opts::RemoteCacheOpts, run::pipeline::Pipeline};
+use crate::{opts::RemoteCacheOpts, task_graph::Pipeline};
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]

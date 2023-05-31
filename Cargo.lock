@@ -9435,6 +9435,7 @@ dependencies = [
  "turbo-updater",
  "turbopath",
  "turborepo-api-client",
+ "turborepo-lockfiles",
  "uds_windows",
  "url",
  "vercel-api-mock",

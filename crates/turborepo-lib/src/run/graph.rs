@@ -5,7 +5,7 @@ use turbopath::AbsoluteSystemPath;
 
 use crate::{
     config::TurboJson,
-    run::pipeline::{Pipeline, TaskDefinition},
+    task_graph::{Pipeline, TaskDefinition},
 };
 
 pub struct CompleteGraph<'run> {

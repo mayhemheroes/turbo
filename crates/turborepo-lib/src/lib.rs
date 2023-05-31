@@ -6,14 +6,18 @@ mod cli;
 mod commands;
 mod config;
 mod daemon;
+mod env;
 mod execution_state;
 pub(crate) mod globwatcher;
 mod manager;
 mod opts;
+mod package_graph;
 mod package_json;
 mod package_manager;
+#[cfg(feature = "run-stub")]
 mod run;
 mod shim;
+mod task_graph;
 mod tracing;
 mod ui;
 

@@ -1,22 +1,19 @@
 #![allow(dead_code)]
 
-mod graph;
-mod package_graph;
-pub mod pipeline;
+mod global_hash;
+pub mod graph;
 mod scope;
 mod task_id;
+
+use std::{collections::HashMap, env};
 
 use anyhow::{Context as ErrorContext, Result};
 use graph::CompleteGraph;
 use tracing::{debug, info};
 
 use crate::{
-    commands::CommandBase,
-    daemon::DaemonConnector,
-    manager::Manager,
-    opts::Opts,
-    package_json::PackageJson,
-    run::{package_graph::PackageGraph, task_id::ROOT_PKG_NAME},
+    commands::CommandBase, daemon::DaemonConnector, manager::Manager, opts::Opts,
+    package_graph::PackageGraph, package_json::PackageJson, run::task_id::ROOT_PKG_NAME,
 };
 
 #[derive(Debug)]
@@ -104,6 +101,10 @@ impl Run {
                 }
             }
         }
+
+        let env_at_execution_start = env::vars().collect::<HashMap<_, _>>();
+
+        let global_hash_inputs = get_global_hash_inputs();
 
         Ok(())
     }

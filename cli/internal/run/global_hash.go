@@ -93,30 +93,16 @@ func calculateGlobalHashFromHashableInputs(full GlobalHashableInputs) (string, e
 	}
 }
 
-func getGlobalHashInputs(
-	logger hclog.Logger,
-	rootpath turbopath.AbsoluteSystemPath,
-	rootPackageJSON *fs.PackageJSON,
-	packageManager *packagemanager.PackageManager,
-	lockFile lockfile.Lockfile,
-	globalFileDependencies []string,
-	envAtExecutionStart env.EnvironmentVariableMap,
-	globalEnv []string,
-	globalPassThroughEnv []string,
-	envMode util.EnvMode,
-	frameworkInference bool,
-	dotEnv turbopath.AnchoredUnixPathArray,
-) (GlobalHashableInputs, error) {
-	// Calculate env var dependencies
-
+// `getGlobalHashableEnvVars` calculates env var dependencies
+func getGlobalHashableEnvVars(envAtExecutionStart env.EnvironmentVariableMap, globalEnv []string) (env.DetailedMap, error) {
 	// Our "inferred" env var maps
 	defaultEnvVarMap, err := envAtExecutionStart.FromWildcards(_defaultEnvVars)
 	if err != nil {
-		return GlobalHashableInputs{}, err
+		return env.DetailedMap{}, err
 	}
 	userEnvVarSet, err := envAtExecutionStart.FromWildcardsUnresolved(globalEnv)
 	if err != nil {
-		return GlobalHashableInputs{}, err
+		return env.DetailedMap{}, err
 	}
 
 	allEnvVarMap := env.EnvironmentVariableMap{}
@@ -140,6 +126,24 @@ func getGlobalHashInputs(
 		},
 	}
 
+	return globalHashableEnvVars, nil
+}
+
+func getGlobalHashInputs(
+	logger hclog.Logger,
+	rootpath turbopath.AbsoluteSystemPath,
+	rootPackageJSON *fs.PackageJSON,
+	packageManager *packagemanager.PackageManager,
+	lockFile lockfile.Lockfile,
+	globalFileDependencies []string,
+	envAtExecutionStart env.EnvironmentVariableMap,
+	globalEnv []string,
+	globalPassThroughEnv []string,
+	envMode util.EnvMode,
+	frameworkInference bool,
+	dotEnv turbopath.AnchoredUnixPathArray,
+) (GlobalHashableInputs, error) {
+	globalHashableEnvVars, err := getGlobalHashableEnvVars(envAtExecutionStart, globalEnv)
 	if err != nil {
 		return GlobalHashableInputs{}, err
 	}
