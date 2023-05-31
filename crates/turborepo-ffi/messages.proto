@@ -180,3 +180,19 @@ message GetPackageFileHashesFromGitIndexResponse {
     string error = 2;
   }
 }
+
+message FromWildcardsRequest {
+  EnvVarMap env_vars = 1;
+  repeated string wildcard_patterns = 2;
+}
+
+message FromWildcardsResponse {
+  oneof response {
+    EnvVarMap env_vars = 1;
+    string error = 2;
+  }
+}
+
+message EnvVarMap {
+  map<string, string> map = 1;
+}

@@ -6,7 +6,6 @@ mod cli;
 mod commands;
 mod config;
 mod daemon;
-mod env;
 mod execution_state;
 pub(crate) mod globwatcher;
 mod manager;

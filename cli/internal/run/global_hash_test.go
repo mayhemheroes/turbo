@@ -9,26 +9,68 @@ import (
 
 func TestGetGlobalHashableEnvVars(t *testing.T) {
 	testCases := []struct {
+		name                string
 		envAtExecutionStart env.EnvironmentVariableMap
 		globalEnv           []string
 		expectedMap         env.DetailedMap
 	}{
 		{
+			name: "has default env var",
 			envAtExecutionStart: env.EnvironmentVariableMap{
-				"FOO":     "bar",
-				"BAR_BAT": "baz",
+				"VERCEL_ANALYTICS_ID": "123",
 			},
-			globalEnv: []string{
-				"FOO*",
-				"!BAR*",
+			globalEnv: []string{},
+			expectedMap: env.DetailedMap{
+				All: map[string]string{
+					"VERCEL_ANALYTICS_ID": "123",
+				},
+				BySource: env.BySource{
+					Explicit: map[string]string{},
+					Matching: map[string]string{
+						"VERCEL_ANALYTICS_ID": "123",
+					},
+				},
 			},
-			expectedMap: env.DetailedMap{},
+		},
+		{
+			name: "has global env wildcard",
+			envAtExecutionStart: env.EnvironmentVariableMap{
+				"FOO_BAR": "123",
+			},
+			globalEnv: []string{"FOO*"},
+			expectedMap: env.DetailedMap{
+				All: map[string]string{
+					"FOO_BAR": "123",
+				},
+				BySource: env.BySource{
+					Explicit: map[string]string{
+						"FOO_BAR": "123",
+					},
+					Matching: map[string]string{},
+				},
+			},
+		},
+		{
+			name: "has global env wildcard but also excluded",
+			envAtExecutionStart: env.EnvironmentVariableMap{
+				"FOO_BAR": "123",
+			},
+			globalEnv: []string{"FOO*", "!FOO_BAR"},
+			expectedMap: env.DetailedMap{
+				All: map[string]string{},
+				BySource: env.BySource{
+					Explicit: map[string]string{},
+					Matching: map[string]string{},
+				},
+			},
 		},
 	}
 
 	for _, testCase := range testCases {
-		result, err := getGlobalHashableEnvVars(testCase.envAtExecutionStart, testCase.globalEnv)
-		assert.NoError(t, err)
-		assert.Equal(t, testCase.expectedMap, result)
+		t.Run(testCase.name, func(t *testing.T) {
+			result, err := getGlobalHashableEnvVars(testCase.envAtExecutionStart, testCase.globalEnv)
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.expectedMap, result)
+		})
 	}
 }

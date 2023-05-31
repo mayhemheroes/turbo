@@ -1,12 +1,14 @@
-use std::{collections::BTreeMap, env};
+use std::{
+    collections::HashMap,
+    env,
+    ops::{Deref, DerefMut},
+};
 
-use petgraph::visit::Walker;
 use regex::Regex;
-use sha2::{Digest, Sha256};
 
 // TODO: Consider using immutable data structures here
-#[derive(Debug, Default)]
-pub struct EnvironmentVariableMap(BTreeMap<String, String>);
+#[derive(Clone, Debug, Default)]
+pub struct EnvironmentVariableMap(HashMap<String, String>);
 
 // BySource contains a map of environment variables broken down by the source
 pub struct BySource {
@@ -22,45 +24,66 @@ pub struct DetailedMap {
     pub by_source: BySource,
 }
 
-// EnvironmentVariablePairs is a list of "k=v" strings for env variables and
-// their values
-type EnvironmentVariablePairs = Vec<String>;
-
 // WildcardMaps is a pair of EnvironmentVariableMaps.
-struct WildcardMaps {
+#[derive(Debug)]
+pub struct WildcardMaps {
     pub inclusions: EnvironmentVariableMap,
     pub exclusions: EnvironmentVariableMap,
 }
 
 impl WildcardMaps {
     // Resolve collapses a WildcardSet into a single EnvironmentVariableMap.
-    fn resolve(&self) -> EnvironmentVariableMap {
-        let mut output = self.inclusions.clone();
-        for (key, _) in &self.exclusions {
+    fn resolve(self) -> EnvironmentVariableMap {
+        let mut output = self.inclusions;
+        for (key, _) in &self.exclusions.0 {
             output.remove(key);
         }
         output
     }
 }
 
+impl From<HashMap<String, String>> for EnvironmentVariableMap {
+    fn from(map: HashMap<String, String>) -> Self {
+        EnvironmentVariableMap(map)
+    }
+}
+
+impl Deref for EnvironmentVariableMap {
+    type Target = HashMap<String, String>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for EnvironmentVariableMap {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 impl EnvironmentVariableMap {
     pub fn infer() -> Self {
-        EnvironmentVariableMap(env::vars().iter().collect())
+        EnvironmentVariableMap(env::vars().collect())
+    }
+
+    pub fn into_inner(self) -> HashMap<String, String> {
+        self.0
     }
 
     // Takes another EnvironmentVariableMap and adds it into `self`
     // Overwrites values if they already exist.
     pub fn union(&mut self, another: &EnvironmentVariableMap) {
-        for (key, value) in another {
+        for (key, value) in &another.0 {
             self.0.insert(key.clone(), value.clone());
         }
     }
 
     // Takes another EnvironmentVariableMap and removes matching keys
     // from `self`
-    pub fn difference(evm: &mut EnvironmentVariableMap, another: &EnvironmentVariableMap) {
-        for key in another.keys() {
-            evm.remove(key);
+    pub fn difference(&mut self, another: &EnvironmentVariableMap) {
+        for key in another.0.keys() {
+            self.0.remove(key);
         }
     }
 
@@ -68,55 +91,14 @@ impl EnvironmentVariableMap {
         self.0.insert(key, value);
     }
 
-    // Returns a sorted list of env var names from `self`
-    fn names(&self) -> Vec<String> {
-        let mut names: Vec<String> = evm.keys().cloned().collect();
-        names.sort();
-        names
-    }
-
-    // Returns a deterministically sorted set of EnvironmentVariablePairs
-    // from `self`. It takes a function to operate on each
-    // key-value pair and return a string
-    fn map_to_pair<F>(&self, transformer: F) -> EnvironmentVariablePairs
-    where
-        F: Fn(&str, &str) -> String,
-    {
-        let mut pairs: EnvironmentVariablePairs =
-            evm.iter().map(|(k, v)| transformer(k, v)).collect();
-        pairs.sort();
-        pairs
-    }
-
-    // Returns a deterministically sorted set of EnvironmentVariablePairs
-    // from an EnvironmentVariableMap This is the value used to print out
-    // the task hash input, so the values are cryptographically hashed
-    fn to_secret_hashable(&self) -> EnvironmentVariablePairs {
-        self.map_to_pair(|k, v| {
-            if !v.is_empty() {
-                let hashed_value = Sha256::digest(v.as_bytes());
-                format!("{}={:x}", k, hashed_value)
-            } else {
-                format!("{}=", k)
-            }
-        })
-    }
-
-    // ToHashable returns a deterministically sorted set of EnvironmentVariablePairs
-    // from an EnvironmentVariableMap This is the value that is used upstream as a
-    // task hash input, so we need it to be deterministic
-    fn to_hashable(&self) -> EnvironmentVariablePairs {
-        self.map_to_pair(|k, v| format!("{}={}", k, v))
-    }
-
-    // from_wildcards returns a wildcardSet after processing wildcards against it.
+    // returns a WildcardMaps after processing wildcards against it.
     fn wildcard_map_from_wildcards(
         &self,
         wildcard_patterns: &[String],
     ) -> Result<WildcardMaps, regex::Error> {
         let mut output = WildcardMaps {
-            inclusions: EnvironmentVariableMap::new(),
-            exclusions: EnvironmentVariableMap::new(),
+            inclusions: EnvironmentVariableMap::default(),
+            exclusions: EnvironmentVariableMap::default(),
         };
 
         let mut include_patterns = Vec::new();
@@ -142,8 +124,7 @@ impl EnvironmentVariableMap {
 
         let include_regex = Regex::new(&include_regex_string)?;
         let exclude_regex = Regex::new(&exclude_regex_string)?;
-
-        for (env_var, env_value) in evm {
+        for (env_var, env_value) in &self.0 {
             if !include_patterns.is_empty() && include_regex.is_match(env_var) {
                 output.inclusions.insert(env_var.clone(), env_value.clone());
             }
@@ -162,10 +143,10 @@ impl EnvironmentVariableMap {
         wildcard_patterns: &[String],
     ) -> Result<EnvironmentVariableMap, regex::Error> {
         if wildcard_patterns.is_empty() {
-            return Ok(EnvironmentVariableMap::new());
+            return Ok(EnvironmentVariableMap::default());
         }
 
-        let mut resolved_set = self.from_wildcards(wildcard_patterns)?;
+        let resolved_set = self.wildcard_map_from_wildcards(wildcard_patterns)?;
         Ok(resolved_set.resolve())
     }
 
@@ -178,12 +159,12 @@ impl EnvironmentVariableMap {
     ) -> Result<WildcardMaps, regex::Error> {
         if wildcard_patterns.is_empty() {
             return Ok(WildcardMaps {
-                inclusions: EnvironmentVariableMap::new(),
-                exclusions: EnvironmentVariableMap::new(),
+                inclusions: EnvironmentVariableMap::default(),
+                exclusions: EnvironmentVariableMap::default(),
             });
         }
 
-        self.from_wildcards(wildcard_patterns)
+        self.wildcard_map_from_wildcards(wildcard_patterns)
     }
 }
 
@@ -201,10 +182,10 @@ fn wildcard_to_regex_pattern(pattern: &str) -> String {
             if previous_char == Some(WILDCARD_ESCAPE) {
                 // Found a literal *
                 // Replace the trailing "\*" with just "*" before adding the segment.
-                regex_string.push(format!(
+                regex_string.push(regex::escape(&format!(
                     "{}*",
-                    regex::escape(&pattern[previous_index..i - 1])
-                ));
+                    &pattern[previous_index..(i - 1)]
+                )));
             } else {
                 // Found a wildcard
                 // Add in the static segment since the last wildcard. Can be zero length.
@@ -215,8 +196,6 @@ fn wildcard_to_regex_pattern(pattern: &str) -> String {
                     if last_segment != &REGEX_WILDCARD_SEGMENT {
                         regex_string.push(REGEX_WILDCARD_SEGMENT.to_string());
                     }
-                } else {
-                    regex_string.push(REGEX_WILDCARD_SEGMENT.to_string());
                 }
             }
 
@@ -230,4 +209,19 @@ fn wildcard_to_regex_pattern(pattern: &str) -> String {
     regex_string.push(regex::escape(&pattern[previous_index..]));
 
     regex_string.join("")
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use test_case::test_case;
+
+    use crate::EnvironmentVariableMap;
+
+    #[test_case("LITERAL_\\*", "LITERAL_\\*" ; "literal *")]
+    fn test_wildcard_to_regex_pattern(pattern: &str, expected: &str) {
+        let actual = super::wildcard_to_regex_pattern(pattern);
+        assert_eq!(actual, expected);
+    }
 }

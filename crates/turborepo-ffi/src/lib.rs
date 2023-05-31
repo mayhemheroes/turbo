@@ -8,6 +8,7 @@ use std::{collections::HashMap, mem::ManuallyDrop, path::PathBuf};
 
 pub use lockfile::{patches, subgraph, transitive_closure};
 use turbopath::{AbsoluteSystemPathBuf, AnchoredSystemPathBuf};
+use turborepo_env::EnvironmentVariableMap;
 
 mod proto {
     include!(concat!(env!("OUT_DIR"), "/_.rs"));
@@ -286,4 +287,41 @@ pub extern "C" fn get_package_file_hashes_from_git_index(buffer: Buffer) -> Buff
         }
     };
     response.into()
+}
+
+#[no_mangle]
+pub extern "C" fn from_wildcards(buffer: Buffer) -> Buffer {
+    let req: proto::FromWildcardsRequest = match buffer.into_proto() {
+        Ok(req) => req,
+        Err(err) => {
+            let resp = proto::FromWildcardsResponse {
+                response: Some(proto::from_wildcards_response::Response::Error(
+                    err.to_string(),
+                )),
+            };
+            return resp.into();
+        }
+    };
+
+    let env_var_map: EnvironmentVariableMap = req.env_vars.unwrap().map.into();
+    match env_var_map.from_wildcards(&req.wildcard_patterns) {
+        Ok(map) => {
+            let resp = proto::FromWildcardsResponse {
+                response: Some(proto::from_wildcards_response::Response::EnvVars(
+                    proto::EnvVarMap {
+                        map: map.into_inner(),
+                    },
+                )),
+            };
+            resp.into()
+        }
+        Err(err) => {
+            let resp = proto::FromWildcardsResponse {
+                response: Some(proto::from_wildcards_response::Response::Error(
+                    err.to_string(),
+                )),
+            };
+            resp.into()
+        }
+    }
 }
