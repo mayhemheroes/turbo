@@ -9,9 +9,6 @@ import (
 	"strings"
 )
 
-// EnvironmentVariableMap is a map of env variables and their values
-type EnvironmentVariableMap map[string]string
-
 // BySource contains a map of environment variables broken down by the source
 type BySource struct {
 	Explicit EnvironmentVariableMap
@@ -20,11 +17,14 @@ type BySource struct {
 
 // DetailedMap contains the composite and the detailed maps of environment variables
 // All is used as a taskhash input (taskhash.CalculateTaskHash)
-// BySoure is used to print out a Dry Run Summary
+// BySource is used to print out a Dry Run Summary
 type DetailedMap struct {
 	All      EnvironmentVariableMap
 	BySource BySource
 }
+
+// EnvironmentVariableMap is a map of env variables and their values
+type EnvironmentVariableMap map[string]string
 
 // EnvironmentVariablePairs is a list of "k=v" strings for env variables and their values
 type EnvironmentVariablePairs []string

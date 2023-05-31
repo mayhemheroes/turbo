@@ -40,6 +40,7 @@ func NewGlobalHashSummary(
 	resolvedEnvVars env.DetailedMap,
 	resolvedPassThroughEnvVars env.EnvironmentVariableMap,
 ) *GlobalHashSummary {
+
 	return &GlobalHashSummary{
 		GlobalCacheKey:       globalCacheKey,
 		GlobalFileHashMap:    fileHashMap,

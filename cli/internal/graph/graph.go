@@ -4,6 +4,7 @@ package graph
 import (
 	gocontext "context"
 	"fmt"
+	"github.com/vercel/turbo/cli/internal/env"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -158,8 +159,8 @@ func (g *CompleteGraph) GetPackageTaskVisitor(
 					Env:            specifiedEnvVarsPresentation,
 					PassThroughEnv: taskDefinition.PassThroughEnv,
 				},
-				Configured:  envVars.BySource.Explicit.ToSecretHashable(),
-				Inferred:    envVars.BySource.Matching.ToSecretHashable(),
+				Configured:  env.EnvironmentVariableMap(envVars.BySource.Explicit).ToSecretHashable(),
+				Inferred:    env.EnvironmentVariableMap(envVars.BySource.Matching).ToSecretHashable(),
 				PassThrough: envVarPassThroughMap.ToSecretHashable(),
 			},
 			DotEnv:           taskDefinition.DotEnv,
