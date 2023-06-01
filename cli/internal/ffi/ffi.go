@@ -364,6 +364,8 @@ func GetPackageFileHashesFromGitIndex(rootPath string, packagePath string) (map[
 	return hashes.GetHashes(), nil
 }
 
+// FromWildcards returns an EnvironmentVariableMap containing the variables
+// in the environment which match an array of wildcard patterns.
 func FromWildcards(evm map[string]string, wildcardPatterns []string) (map[string]string, error) {
 	if wildcardPatterns == nil {
 		return nil, nil
@@ -395,6 +397,7 @@ func FromWildcards(evm map[string]string, wildcardPatterns []string) (map[string
 	return envVarMap, nil
 }
 
+// GetGlobalHashableEnvVars calculates env var dependencies
 func GetGlobalHashableEnvVars(envAtExecutionStart map[string]string, globalEnv []string) (*ffi_proto.DetailedMap, error) {
 	req := ffi_proto.GetGlobalHashableEnvVarsRequest{
 		EnvAtExecutionStart: &ffi_proto.EnvVarMap{Map: envAtExecutionStart},

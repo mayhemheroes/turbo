@@ -4,7 +4,6 @@ package graph
 import (
 	gocontext "context"
 	"fmt"
-	"github.com/vercel/turbo/cli/internal/env"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/pyr-sh/dag"
+	"github.com/vercel/turbo/cli/internal/env"
 	"github.com/vercel/turbo/cli/internal/fs"
 	"github.com/vercel/turbo/cli/internal/nodes"
 	"github.com/vercel/turbo/cli/internal/runsummary"

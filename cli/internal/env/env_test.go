@@ -1,10 +1,10 @@
 package env
 
 import (
-	"github.com/vercel/turbo/cli/internal/ffi"
 	"reflect"
 	"testing"
 
+	"github.com/vercel/turbo/cli/internal/ffi"
 	"gotest.tools/v3/assert"
 )
 

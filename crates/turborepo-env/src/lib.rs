@@ -52,9 +52,7 @@ impl WildcardMaps {
     // Resolve collapses a WildcardSet into a single EnvironmentVariableMap.
     fn resolve(self) -> EnvironmentVariableMap {
         let mut output = self.inclusions;
-        for (key, _) in &self.exclusions.0 {
-            output.remove(key);
-        }
+        output.difference(&self.exclusions);
         output
     }
 }
@@ -122,12 +120,10 @@ impl EnvironmentVariableMap {
         let mut exclude_patterns = Vec::new();
 
         for wildcard_pattern in wildcard_patterns {
-            if wildcard_pattern.starts_with('!') {
-                let exclude_pattern = wildcard_to_regex_pattern(&wildcard_pattern[1..]);
+            if let Some(rest) = wildcard_pattern.strip_prefix('!') {
+                let exclude_pattern = wildcard_to_regex_pattern(rest);
                 exclude_patterns.push(exclude_pattern);
-            } else if wildcard_pattern.starts_with('\\')
-                && wildcard_pattern.chars().nth(1) == Some('!')
-            {
+            } else if wildcard_pattern.starts_with("\\!") {
                 let include_pattern = wildcard_to_regex_pattern(&wildcard_pattern[1..]);
                 include_patterns.push(include_pattern);
             } else {
@@ -264,9 +260,11 @@ mod tests {
 
     use test_case::test_case;
 
-    use crate::EnvironmentVariableMap;
-
-    #[test_case("LITERAL_\\*", "LITERAL_\\*" ; "literal *")]
+    #[test_case("LITERAL_\\*", "LITERAL_\\*" ; "literal star")]
+    #[test_case("\\*LEADING", "\\*LEADING" ; "leading literal star")]
+    #[test_case("\\!LEADING", "\\\\!LEADING" ; "leading literal bang")]
+    #[test_case("!LEADING", "!LEADING" ; "leading bang")]
+    #[test_case("*LEADING", ".*LEADING" ; "leading star")]
     fn test_wildcard_to_regex_pattern(pattern: &str, expected: &str) {
         let actual = super::wildcard_to_regex_pattern(pattern);
         assert_eq!(actual, expected);
