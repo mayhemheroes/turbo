@@ -306,7 +306,7 @@ pub extern "C" fn glob(buffer: Buffer) -> Buffer {
         false => globwalk::WalkType::All,
     };
 
-    let mut iter = match globwalk(
+    let iter = match globwalk(
         &AbsoluteSystemPathBuf::new(req.base_path).expect("absolute"),
         &req.include_patterns,
         &req.exclude_patterns,
@@ -343,6 +343,7 @@ pub extern "C" fn glob(buffer: Buffer) -> Buffer {
     .into()
 }
 
+#[no_mangle]
 pub extern "C" fn from_wildcards(buffer: Buffer) -> Buffer {
     let req: proto::FromWildcardsRequest = match buffer.into_proto() {
         Ok(req) => req,
