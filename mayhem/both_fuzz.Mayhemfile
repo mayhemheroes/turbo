@@ -1,0 +1,5 @@
+project: turbo
+target: both_fuzz
+
+cmds:
+  - cmd: /both_fuzz

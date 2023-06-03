@@ -1,0 +1,5 @@
+project: turbo
+target: pattern_on_itself
+
+cmds:
+  - cmd: /pattern_on_itself
